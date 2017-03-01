@@ -80,6 +80,11 @@ namespace SpreadsheetEngine
         {
             referencedBy.Add(c);
         }
+
+        public void clearReferences()
+        {
+            this.references = new List<CellHelper>();
+        }
     }
 
     public class CellHelper : Cell //This class will inherit from class and will allow Spreadsheet to call properties in Cell that it wouldn't be able to otherwise

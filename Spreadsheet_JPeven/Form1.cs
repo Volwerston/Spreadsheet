@@ -91,6 +91,12 @@ namespace Spreadsheet_JPeven
         private void dataGridView2_CellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
             string msg = String.Format("Finished Editing Cell at ({0}, {1})", e.ColumnIndex, e.RowIndex);
+            /*if ((string)dataGridView2.Rows[e.RowIndex].Cells[e.ColumnIndex].Value == "")
+            {
+                mySpread.cell_array[e.RowIndex, e.ColumnIndex].cText = 
+            }
+            else
+            */
             mySpread.cell_array[e.RowIndex, e.ColumnIndex].cText = (string)dataGridView2.Rows[e.RowIndex].Cells[e.ColumnIndex].Value;
             dataGridView2.Rows[e.RowIndex].Cells[e.ColumnIndex].Value = mySpread.cell_array[e.RowIndex, e.ColumnIndex].chValue;
             this.Text = msg;

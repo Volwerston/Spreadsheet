@@ -32,10 +32,13 @@ namespace SpreadsheetEngine
 
         private void NotifyCellPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            if ((sender as Cell).cText.ToString().Length > 0)     //This means that there is something in the cell
+            
+            if((sender as Cell).cText != null)
+            //if ((sender as Cell).cText.ToString().Length > 0)     //This means that there is something in the cell
             {
                 if ((sender as Cell).cText[0] != '=')        //no need to do equation processing because it doesn't start with '='
                 {
+                    (sender as CellHelper).clearReferences();
                     (sender as CellHelper).chValue = (sender as Cell).cText;
                     if ((sender as CellHelper).referencedBy.Count != 0) //some stuff references this
                     {
@@ -45,10 +48,6 @@ namespace SpreadsheetEngine
                         }
                     }
                 }
-
-                //THERE'S SOME ERROR WITH REMOVING REFERENCES TO THE CELLS. THE TEST I TRIED WAS A1 = 44, A2 = A1, A1 = 22
-                //AND THAT UPDATED FINE. THE ISSUE WAS THEN CHANGING A2 = 33, SO IT'S NOT REFERENCING A1, BUT THEN WHEN I
-                //CHANGED A1 IT STILL CHANGED
 
                 else if((sender as Cell).cText[0] == '=')                                    //Text is an equation
                 {
@@ -60,7 +59,7 @@ namespace SpreadsheetEngine
                         c.removeReferenceBy((sender as CellHelper));
                     }
 
-                    (sender as CellHelper).references = new List<CellHelper>(); //clears reference list
+                    (sender as CellHelper).clearReferences(); //clears reference list
 
                     //UpdateCellValue((sender as CellHelper));
 
@@ -115,7 +114,7 @@ namespace SpreadsheetEngine
             else                                //I'm not totally sure when this would be triggered, error on input maybe?
             {
                 (sender as CellHelper).chValue = (sender as Cell).cText;
-                (sender as Cell).cText = "ERROR";
+                //(sender as Cell).cText = "ERROR";
             }
             NotifyPropertyChanged((sender as CellHelper), new PropertyChangedEventArgs("Cell updated"));
         }
@@ -127,24 +126,35 @@ namespace SpreadsheetEngine
             //Will create a new expression tree based on the text, and get the cell values
             //from the spreadsheet.
         {
-            ExpTree tree = new ExpTree(c.cText.Substring(1));    //create an expression tree
-            List<string> referencedCells = tree.GetVariables();                //This list contains all referenced cells. So "=A1+B2*3" would have ["A1","B2"]
-
-            foreach (string c_name in referencedCells)
+            if (c.cText == null)
             {
-                string req_col = c_name.Substring(0, 1);     //to get the required column we need the celltext for the first value "=A6" -> "A"
-                string req_row = c_name.Substring(1);     //This will take the rest of the information, there's no length so it could read it "=A15" -> "15
-                int colInt = Convert.ToChar(req_col) - 65;                //gets the index based on the character
-                int rowInt = Convert.ToInt32(req_row) - 1;                //sets the index (and subtracts on so it's (0,49) instead of (1,50), matching the indexes
-
-                double cellVal = Convert.ToDouble(cell_array[rowInt, colInt].chValue);
-                tree.SetVar(c_name, cellVal);                           //now the tree knows what A2 is
-
-                /*(sender as CellHelper).addReference(cell_array[rowInt, colInt]);      //We're telling this cell what it references
-                cell_array[rowInt, colInt].addReferenceBy((sender as CellHelper));    //The cell we're referencing now knows we're referencing them*/
+                c.chValue = c.cText;
             }
+            else
+            {
+                ExpTree tree = new ExpTree(c.cText.Substring(1));    //create an expression tree
+                List<string> referencedCells = tree.GetVariables();                //This list contains all referenced cells. So "=A1+B2*3" would have ["A1","B2"]
 
-            c.chValue = Convert.ToString(tree.Eval());
+                foreach (string c_name in referencedCells)
+                {
+                    string req_col = c_name.Substring(0, 1);     //to get the required column we need the celltext for the first value "=A6" -> "A"
+                    string req_row = c_name.Substring(1);     //This will take the rest of the information, there's no length so it could read it "=A15" -> "15
+                    int colInt = Convert.ToChar(req_col) - 65;                //gets the index based on the character
+                    int rowInt = Convert.ToInt32(req_row) - 1;                //sets the index (and subtracts on so it's (0,49) instead of (1,50), matching the indexes
+
+                    double cellVal = Convert.ToDouble(cell_array[rowInt, colInt].chValue);
+                    tree.SetVar(c_name, cellVal);                           //now the tree knows what A2 is
+
+                    /*(sender as CellHelper).addReference(cell_array[rowInt, colInt]);      //We're telling this cell what it references
+                    cell_array[rowInt, colInt].addReferenceBy((sender as CellHelper));    //The cell we're referencing now knows we're referencing them*/
+                }
+
+                c.chValue = Convert.ToString(tree.Eval());
+                foreach (CellHelper c2 in c.referencedBy)
+                {
+                    UpdateCellValue(c2);
+                }
+            }
             NotifyPropertyChanged(c, new PropertyChangedEventArgs("Cell updated"));
         }
 
