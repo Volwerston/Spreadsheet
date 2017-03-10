@@ -43,6 +43,7 @@
     <Compile Include="Cell.cs" />
     <Compile Include="ExpTree.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Restore.cs" />
     <Compile Include="Spreadsheet.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

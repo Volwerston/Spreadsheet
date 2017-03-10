@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+//Jackson Peven, 11382715
+
 namespace SpreadsheetEngine
 {
     public class ExpTree
@@ -131,6 +133,11 @@ namespace SpreadsheetEngine
 
             //(3+4)*(5+6) ---> 3+4)*(5+6 which is wrong
             //if first char is '(' and last character is matching ')', remove parens
+            
+            /*if(exp == "")
+            {
+                return new ConstNode(0);
+            }*/
 
             if (exp[0] == '(')
             {

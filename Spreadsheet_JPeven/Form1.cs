@@ -9,6 +9,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
+//Jackson Peven, 11382715
+
 namespace Spreadsheet_JPeven
 {
     public partial class Form1 : Form
@@ -26,7 +28,52 @@ namespace Spreadsheet_JPeven
         {
             int row_index = (sender as Cell).RowIndex;
             int col_index = (sender as Cell).ColumnIndex;
-            dataGridView2.Rows[row_index].Cells[col_index].Value = (sender as CellHelper).chValue;
+            //These if statements will allow additions to more types of notification changes as updates
+            //happen, making the code more reusable in the future
+            if(e.PropertyName == "CellColor")
+            {
+                Color newColor;
+                Color weirdHack;
+                newColor = Color.FromArgb((sender as CellHelper).BGColor);
+
+                if (newColor.A == 0 && newColor.R == 0 && newColor.G == 0 && newColor.B == 0)
+                    dataGridView2.Rows[row_index].Cells[col_index].Style.BackColor = Color.White;
+                //weirdHack = Color.FromArgb(255, newColor.R, newColor.G, newColor.B);
+                else
+                {
+                    weirdHack = Color.FromArgb(255, newColor.R, newColor.G, newColor.B);
+
+                    dataGridView2.Rows[row_index].Cells[col_index].Style.BackColor = weirdHack;
+                }
+            }
+            if(e.PropertyName == "CellValue")
+            {
+                dataGridView2.Rows[row_index].Cells[col_index].Value = (sender as CellHelper).chValue;
+            }
+
+            //Undo stack
+            if (mySpread.undoCount() == 0)
+            {
+                undoToolStripMenuItem.Enabled = false;
+                undoToolStripMenuItem.Text = "Undo...";
+            }
+            else
+            {
+                undoToolStripMenuItem.Enabled = true;
+                undoToolStripMenuItem.Text = "Undo " + mySpread.undoTop().BText + " change";
+            }
+            
+            //Redo stack
+            if (mySpread.redoCount() == 0)
+            {
+                redoToolStripMenuItem.Enabled = false;
+                redoToolStripMenuItem.Text = "Redo...";
+            }
+            else
+            {
+                redoToolStripMenuItem.Enabled = true;
+                redoToolStripMenuItem.Text = "Redo " + mySpread.redoTop().BText + " change";
+            }
         }
 
         private void Form1_Load_1(object sender, EventArgs e)
@@ -34,7 +81,7 @@ namespace Spreadsheet_JPeven
             for (int i = 65; i <= 90; i++) //This will convert i to an ASCII value for the 
             {
                 dataGridView2.Columns.Add(Convert.ToChar(i).ToString(), Convert.ToChar(i).ToString()); //the .ToString() took me FOREVER to figure out
-                                                                                                       //now the name, and shown value are identical
+                                                                                                      //now the name, and shown value are identical
             }
             for (int i = 0; i < 50; i++)//This will likely need to change later on in the project
             {
@@ -54,13 +101,15 @@ namespace Spreadsheet_JPeven
                     mySpread.cell_array[i, j].PropertyChanged += SpreadsheetPropertyChanged;
                 }
             }*/
+            redoToolStripMenuItem.Text = "Redo...";
+            undoToolStripMenuItem.Text = "Undo...";
+            undoToolStripMenuItem.Enabled = false; //initially nothing can be done
+            redoToolStripMenuItem.Enabled = false;
         }
 
         private void dataGridView2_CellBeginEdit(object sender, DataGridViewCellCancelEventArgs e)
         {
-            string msg = String.Format("Editing Cell at ({0}, {1})", e.ColumnIndex, e.RowIndex);
             dataGridView2.Rows[e.RowIndex].Cells[e.ColumnIndex].Value = mySpread.cell_array[e.RowIndex, e.ColumnIndex].cText;
-            this.Text = msg;
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -97,9 +146,60 @@ namespace Spreadsheet_JPeven
             }
             else
             */
+            TextRestore textRestore = new TextRestore(mySpread.cell_array[e.RowIndex, e.ColumnIndex].cText, (string)dataGridView2.Rows[e.RowIndex].Cells[e.ColumnIndex].Value, e.RowIndex, e.ColumnIndex);
+            textRestore.BText = "Cell Text";
             mySpread.cell_array[e.RowIndex, e.ColumnIndex].cText = (string)dataGridView2.Rows[e.RowIndex].Cells[e.ColumnIndex].Value;
             dataGridView2.Rows[e.RowIndex].Cells[e.ColumnIndex].Value = mySpread.cell_array[e.RowIndex, e.ColumnIndex].chValue;
-            this.Text = msg;
+            mySpread.undoPush(textRestore);
+            undoToolStripMenuItem.Enabled = true;
+            undoToolStripMenuItem.Text = "Undo Cell Text Change";
+            //this.Text = msg;
+        }
+
+        private void undoToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            mySpread.Undo();
+        }
+
+        private void redoToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            mySpread.Redo();
+        }
+
+        private void chooseBackgroundColorToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            ColorDialog CDialogue = new ColorDialog();
+            Color selected = Color.White;
+            int[] origColor = new int[dataGridView2.SelectedCells.Count];
+            int[] newColor = new int[dataGridView2.SelectedCells.Count];
+            int[] newRow = new int[dataGridView2.SelectedCells.Count];
+            int[] newCol = new int[dataGridView2.SelectedCells.Count];
+            //Cell[] cellArr = new Cell[dataGridView2.SelectedCells.Count];
+
+            if (CDialogue.ShowDialog() == DialogResult.OK)
+            {
+                selected = CDialogue.Color;
+            }
+            int i = 0;
+            int test = selected.ToArgb();
+            Color test2 = Color.FromArgb(test);
+            foreach(DataGridViewTextBoxCell c in dataGridView2.SelectedCells)
+            {
+                origColor[i] = c.Style.BackColor.ToArgb();
+                newColor[i] = CDialogue.Color.ToArgb();
+                newRow[i] = c.RowIndex;
+                newCol[i] = c.ColumnIndex;
+                //cellArr[i] = mySpread.cell_array[c.RowIndex, c.ColumnIndex];
+
+                mySpread.cell_array[c.RowIndex, c.ColumnIndex].BGColor = newColor[i];
+                //this updates in the Logic layer which in turn will notify the UI
+                i++;
+            }
+            Restore colRestore = new ColorRestore(origColor, newColor, newRow,newCol);
+            colRestore.BText = "Background Color";
+            undoToolStripMenuItem.Enabled = true;
+            undoToolStripMenuItem.Text = "Undo Background Color Change";
+            mySpread.undoPush(colRestore);
         }
     }
 }

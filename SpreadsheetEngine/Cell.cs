@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.ComponentModel; //for INotifyProperty
 
+//Jackson Peven, 11382715
+
 namespace SpreadsheetEngine
 {
     public abstract class Cell : INotifyPropertyChanged
@@ -15,6 +17,7 @@ namespace SpreadsheetEngine
         protected string cellValue;
         public List<CellHelper> referencedBy = new List<CellHelper>();
         public List<CellHelper> references = new List<CellHelper>();
+        private int color;
 
         public event PropertyChangedEventHandler PropertyChanged; //= delegate { };
 
@@ -55,6 +58,15 @@ namespace SpreadsheetEngine
             set { cellValue = value; } //this will only be called by a function inside Cell, because when Spreadsheet changes a cell value, it will be routed through CellHelper
         }
 
+        public int BGColor
+        {
+            get { return color; }
+            set {
+                color = value;
+                NotifyPropertyChanged("CellColor");
+            }
+        }
+
         public void NotifyPropertyChanged(string change) //I wrote this function in case in the future there are more than one kinds of property changes
                                                           //right now it's just cell text but I'm preparing for future iterations
         {
@@ -80,11 +92,6 @@ namespace SpreadsheetEngine
         {
             referencedBy.Add(c);
         }
-
-        public void clearReferences()
-        {
-            this.references = new List<CellHelper>();
-        }
     }
 
     public class CellHelper : Cell //This class will inherit from class and will allow Spreadsheet to call properties in Cell that it wouldn't be able to otherwise
@@ -99,6 +106,14 @@ namespace SpreadsheetEngine
                 //NotifyPropertyChanged("Value updated");
                 //cellText = cellValue; //took me about an our of debugging to realize I wasn't connecting the text with the value
             }
+        }
+        public void clearReferences()
+        {
+            foreach (Cell c in references) //I might not reference you anymore
+            {
+                c.removeReferenceBy(this);
+            }
+            references = new List<CellHelper>();
         }
     }
 
