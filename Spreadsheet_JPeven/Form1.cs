@@ -201,5 +201,15 @@ namespace Spreadsheet_JPeven
             undoToolStripMenuItem.Text = "Undo Background Color Change";
             mySpread.undoPush(colRestore);
         }
+
+        private void saveToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void loadToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }
