@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -202,14 +203,33 @@ namespace Spreadsheet_JPeven
             mySpread.undoPush(colRestore);
         }
 
+        /* The code for Save/Load is taken from my PA3. The instructions say to keep the work in the logic layer, so what I think I'll do is
+         * open a stream for reading/writing and then pass that the to another function in the logic layer to deal with the actual saving and loading
+         * */
+
         private void saveToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            SaveFileDialog SFD = new SaveFileDialog();
 
+            if (SFD.ShowDialog() == DialogResult.OK)     //Making sure everything is alright.
+            {
+                StreamWriter myStream = new StreamWriter(File.Create(SFD.FileName));    //Creating a streamWriter that will in turn create a new file from the 
+                //myStream.Write(textBox1.Text);                                      //Takes everything in the textbox and writes it to a file that was just created
+                //myStream.Dispose();                                                 //Disposing the streamWriter because we don't need it anymore
+            }
         }
 
         private void loadToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            OpenFileDialog OFD = new OpenFileDialog();
 
+            if (OFD.ShowDialog() == DialogResult.OK)
+            {
+                using (StreamReader myStream = new StreamReader(OFD.FileName))
+                {
+                    //LoadText(myStream);//.ReadToEnd();
+                }
+            }
         }
     }
 }

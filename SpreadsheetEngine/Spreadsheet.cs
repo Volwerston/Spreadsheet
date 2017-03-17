@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.ComponentModel; //for INotifyProperty
+using System.Xml;           //maybe?
 
 //Jackson Peven, 11382715
 
@@ -238,6 +239,33 @@ namespace SpreadsheetEngine
                 cell_array[(item as TextRestore).rowIndex, (item as TextRestore).colIndex].cText = (item as TextRestore).orText;
             }
             //this will be for future undo/redo actions
+        }
+
+        private XmlDocument saveToXML() //maybe this needs to return an XML document...
+        {
+
+
+            return new XmlDocument();
+        }
+
+        private void loadFromXML(XmlDocument stream)
+        {
+            clearSpreadsheet();
+
+        }
+
+        private void clearSpreadsheet()
+            //This function will be called on a load action and will clear the current spreadsheet out. Should only be called by load
+        {
+            undoStack = new Stack<Restore>();
+            redoStack = new Stack<Restore>();
+            for(int i = 0; i < RowCount; i++)
+            {
+                for(int j = 0; j < ColumnCount; j++)
+                {
+                    cell_array[i,j] = new CellHelper(i, j); //this might not trigger the inotify property to update the datagridview value in the GUI
+                }
+            }
         }
 
 
