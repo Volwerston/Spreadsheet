@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.ComponentModel; //for INotifyProperty
 using System.Xml;           //maybe?
+using System.IO;
+using System.Drawing;
 
 //Jackson Peven, 11382715
 
@@ -241,16 +243,57 @@ namespace SpreadsheetEngine
             //this will be for future undo/redo actions
         }
 
-        private XmlDocument saveToXML() //maybe this needs to return an XML document...
+        public void saveToXML(FileStream fs) //maybe this needs to return an XML document...
         {
+            var xml = new XmlDocument();
+            XmlWriterSettings settings = new XmlWriterSettings();
+            settings.Indent = true;
+            settings.OmitXmlDeclaration = true;
+            settings.NewLineOnAttributes = true;
+            
 
+            using (XmlWriter xWriter = XmlWriter.Create(fs, settings))
+            {
+                //xWriter.WriteStartDocument(); 
+                xWriter.WriteStartElement("Spreadsheet"); //This will create the "root"
+                foreach(Cell c in cell_array)
+                {
+                    if(c.cText != "" || c.BGColor != 0)    //it has been edited
+                    {
+                        string cellName = Convert.ToString(Convert.ToChar(c.ColumnIndex + 65)) + Convert.ToString(c.RowIndex+1);
+                        xWriter.WriteStartElement("cell");
+                        xWriter.WriteAttributeString("name", cellName);
 
-            return new XmlDocument();
+                        xWriter.WriteStartElement("bgcolor");
+                        xWriter.WriteString(ColorTranslator.ToHtml(Color.FromArgb(c.BGColor)));
+                        xWriter.WriteEndElement();          //for bgcolor
+
+                        xWriter.WriteStartElement("text");
+                        xWriter.WriteString(c.cText);
+                        xWriter.WriteEndElement();          //for cText
+                        
+                        xWriter.WriteEndElement();          //for cell
+                    }
+                }
+
+                xWriter.WriteEndElement(); // for spreadsheet
+                                           //xWriter.WriteEndDocument();
+
+                //return xWriter.ToString();
+                /*xml.Load(xWriter.ToString());
+                xWriter.Close();*/
+            }
         }
 
-        private void loadFromXML(XmlDocument stream)
+        public void loadFromXML(FileStream xml)
         {
             clearSpreadsheet();
+            undoStack.Clear();
+            redoStack.Clear();
+            //var xmlNode = new XmlNode("spreadsheet");
+            
+
+
 
         }
 

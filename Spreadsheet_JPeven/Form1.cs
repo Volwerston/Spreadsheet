@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Xml;
 
 //Jackson Peven, 11382715
 
@@ -210,25 +211,30 @@ namespace Spreadsheet_JPeven
         private void saveToolStripMenuItem_Click(object sender, EventArgs e)
         {
             SaveFileDialog SFD = new SaveFileDialog();
-
-            if (SFD.ShowDialog() == DialogResult.OK)     //Making sure everything is alright.
+            SFD.DefaultExt = "xml";
+            if (SFD.ShowDialog() == DialogResult.OK)
             {
-                StreamWriter myStream = new StreamWriter(File.Create(SFD.FileName));    //Creating a streamWriter that will in turn create a new file from the 
-                //myStream.Write(textBox1.Text);                                      //Takes everything in the textbox and writes it to a file that was just created
-                //myStream.Dispose();                                                 //Disposing the streamWriter because we don't need it anymore
+                FileStream fsStream = new FileStream(SFD.FileName, FileMode.Create, FileAccess.Write);
+                mySpread.saveToXML(fsStream);
+                fsStream.Dispose();
+            }
+            else
+            {
+                MessageBox.Show("Error in path");
             }
         }
 
         private void loadToolStripMenuItem_Click(object sender, EventArgs e)
         {
             OpenFileDialog OFD = new OpenFileDialog();
-
+            XmlDocument xml = new XmlDocument();
             if (OFD.ShowDialog() == DialogResult.OK)
             {
-                using (StreamReader myStream = new StreamReader(OFD.FileName))
-                {
-                    //LoadText(myStream);//.ReadToEnd();
-                }
+                FileStream myStream = new FileStream(OFD.FileName, FileMode.Open, FileAccess.Read);
+                mySpread.loadFromXML(myStream);
+
+                //xml.Load(OFD.FileName);
+                //mySpread.loadFromXML(xml);
             }
         }
     }
