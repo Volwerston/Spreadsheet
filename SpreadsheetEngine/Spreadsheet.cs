@@ -46,90 +46,100 @@ namespace SpreadsheetEngine
             }
             if (e.PropertyName == "CellText")
             {
-                if ((sender as Cell).cText != null && (sender as Cell).cText != "")
+                //if ((sender as Cell).cText != null && (sender as Cell).cText != "")
                 //if ((sender as Cell).cText.ToString().Length > 0)     //This means that there is something in the cell
+                if ((sender as Cell).cText == "" || (sender as Cell).cText == null)
                 {
-                    if ((sender as Cell).cText[0] != '=')        //no need to do equation processing because it doesn't start with '='
+                    (sender as CellHelper).chValue = "";
+                    (sender as CellHelper).clearReferences();
+                    if ((sender as CellHelper).referencedBy.Count != 0) //some stuff references this
                     {
-                        (sender as CellHelper).clearReferences();
-                        (sender as CellHelper).chValue = (sender as Cell).cText;
-
-                        if ((sender as CellHelper).referencedBy.Count != 0) //some stuff references this
-                        {
-                            foreach (CellHelper c in (sender as CellHelper).referencedBy)
-                            {
-                                UpdateCellValue(c);
-                            }
-                        }
-                    }
-
-                    else if ((sender as Cell).cText[0] == '=')                                    //Text is an equation
-                    {
-                        ExpTree tree = new ExpTree((sender as CellHelper).cText.Substring(1));    //create an expression tree
-                        List<string> referencedCells = tree.GetVariables();                //This list contains all referenced cells. So "=A1+B2*3" would have ["A1","B2"]
-
-                        /*foreach (Cell c in (sender as CellHelper).references) //I might not reference you anymore
-                        {
-                            c.removeReferenceBy((sender as CellHelper));
-                        }*/
-
-                        (sender as CellHelper).clearReferences(); //clears reference list
-
-                        //UpdateCellValue((sender as CellHelper));
-
-                        foreach (string c_name in referencedCells)
-                        {
-                            string req_col = c_name.Substring(0, 1);     //to get the required column we need the celltext for the first value "=A6" -> "A"
-                            string req_row = c_name.Substring(1);     //This will take the rest of the information, there's no length so it could read it "=A15" -> "15
-                            int colInt = Convert.ToChar(req_col) - 65;                //gets the index based on the character
-                            int rowInt = Convert.ToInt32(req_row) - 1;                //sets the index (and subtracts on so it's (0,49) instead of (1,50), matching the indexes
-
-                            double cellVal = 0;
-                            try
-                            {
-                                cellVal = Convert.ToDouble(cell_array[rowInt, colInt].chValue);
-                            }
-                            catch (FormatException err)
-                            {
-                                cellVal = 0;
-                            }
-
-
-                            tree.SetVar(c_name, cellVal);                           //now the tree knows what A2 is
-
-                            (sender as CellHelper).addReference(cell_array[rowInt, colInt]);      //We're telling this cell what it references
-                            cell_array[rowInt, colInt].addReferenceBy((sender as CellHelper));    //The cell we're referencing now knows we're referencing them
-                        }
-
-                        (sender as CellHelper).chValue = Convert.ToString(tree.Eval());
-
                         foreach (CellHelper c in (sender as CellHelper).referencedBy)
                         {
                             UpdateCellValue(c);
                         }
-
-
-                        //will need to set the value of all referenced values in that equation
-                        //String[] vars = tree.Vars() that will return all "B1", "C3", etc that the expression tree needs
-                        //for each of those strings, tree.setvar(...);
-
-
-
-
-                        /*string req_col = (sender as Cell).cText.Substring(1, 1);     //to get the required column we need the celltext for the first value "=A6" -> "A"
-                        string req_row = (sender as Cell).cText.Substring(2);     //This will take the rest of the information, there's no length so it could read it "=A15" -> "15
-                        int colInt = Convert.ToChar(req_col) - 65;                //gets the index based on the character
-                        int rowInt = Convert.ToInt32(req_row) - 1;                //sets the index (and subtracts on so it's (0,49) instead of (1,50), matching the indexes
-                        //(sender as CellHelper).chValue = tree.Eval();
-                        (sender as CellHelper).chValue = cell_array[rowInt, colInt].chValue;
-                        //updated Dependencies*/
                     }
                 }
-                else                                //I'm not totally sure when this would be triggered, error on input maybe?
+                else if ((sender as Cell).cText[0] == '=')                                    //Text is an equation
+                {
+                    ExpTree tree = new ExpTree((sender as CellHelper).cText.Substring(1));    //create an expression tree
+                    List<string> referencedCells = tree.GetVariables();                //This list contains all referenced cells. So "=A1+B2*3" would have ["A1","B2"]
+
+                    /*foreach (Cell c in (sender as CellHelper).references) //I might not reference you anymore
+                    {
+                        c.removeReferenceBy((sender as CellHelper));
+                    }*/
+
+                    (sender as CellHelper).clearReferences(); //clears reference list
+
+                    //UpdateCellValue((sender as CellHelper));
+
+                    foreach (string c_name in referencedCells)
+                    {
+                        string req_col = c_name.Substring(0, 1);     //to get the required column we need the celltext for the first value "=A6" -> "A"
+                        string req_row = c_name.Substring(1);     //This will take the rest of the information, there's no length so it could read it "=A15" -> "15
+                        int colInt = Convert.ToChar(req_col) - 65;                //gets the index based on the character
+                        int rowInt = Convert.ToInt32(req_row) - 1;                //sets the index (and subtracts on so it's (0,49) instead of (1,50), matching the indexes
+
+                        double cellVal = 0;
+                        try
+                        {
+                            cellVal = Convert.ToDouble(cell_array[rowInt, colInt].chValue);
+                        }
+                        catch (FormatException err)
+                        {
+                            cellVal = 0;
+                        }
+
+
+                        tree.SetVar(c_name, cellVal);                           //now the tree knows what A2 is
+
+                        (sender as CellHelper).addReference(cell_array[rowInt, colInt]);      //We're telling this cell what it references
+                        cell_array[rowInt, colInt].addReferenceBy((sender as CellHelper));    //The cell we're referencing now knows we're referencing them
+                    }
+
+                    (sender as CellHelper).chValue = Convert.ToString(tree.Eval());
+
+                    foreach (CellHelper c in (sender as CellHelper).referencedBy)
+                    {
+                        UpdateCellValue(c);
+                    }
+
+
+                    //will need to set the value of all referenced values in that equation
+                    //String[] vars = tree.Vars() that will return all "B1", "C3", etc that the expression tree needs
+                    //for each of those strings, tree.setvar(...);
+
+
+
+
+                    /*string req_col = (sender as Cell).cText.Substring(1, 1);     //to get the required column we need the celltext for the first value "=A6" -> "A"
+                    string req_row = (sender as Cell).cText.Substring(2);     //This will take the rest of the information, there's no length so it could read it "=A15" -> "15
+                    int colInt = Convert.ToChar(req_col) - 65;                //gets the index based on the character
+                    int rowInt = Convert.ToInt32(req_row) - 1;                //sets the index (and subtracts on so it's (0,49) instead of (1,50), matching the indexes
+                    //(sender as CellHelper).chValue = tree.Eval();
+                    (sender as CellHelper).chValue = cell_array[rowInt, colInt].chValue;
+                    //updated Dependencies*/
+                }
+                else //if ((sender as Cell).cText[0] != '=')        //no need to do equation processing because it doesn't start with '='
+                {
+                    (sender as CellHelper).clearReferences();
+                    (sender as CellHelper).chValue = (sender as Cell).cText;
+
+                    if ((sender as CellHelper).referencedBy.Count != 0) //some stuff references this
+                    {
+                        foreach (CellHelper c in (sender as CellHelper).referencedBy)
+                        {
+                            UpdateCellValue(c);
+                        }
+                    }
+                }
+                /*else                                //I'm not totally sure when this would be triggered, error on input maybe?
                 {
                     (sender as CellHelper).chValue = (sender as Cell).cText;
                     //(sender as Cell).cText = "ERROR";
-                }
+                }*/
+
                 NotifyPropertyChanged((sender as CellHelper), new PropertyChangedEventArgs("CellValue"));
             }
         }
@@ -158,7 +168,13 @@ namespace SpreadsheetEngine
                     int colInt = Convert.ToChar(req_col) - 65;                //gets the index based on the character
                     int rowInt = Convert.ToInt32(req_row) - 1;                //sets the index (and subtracts on so it's (0,49) instead of (1,50), matching the indexes
 
-                    double cellVal = Convert.ToDouble(cell_array[rowInt, colInt].chValue);
+
+                    double cellVal;
+                    if (cell_array[rowInt, colInt].chValue == null || cell_array[rowInt, colInt].chValue == "")
+                        cellVal = 0;
+                    else
+                        cellVal = Convert.ToDouble(cell_array[rowInt, colInt].chValue);
+
                     tree.SetVar(c_name, cellVal);                           //now the tree knows what A2 is
 
                     /*(sender as CellHelper).addReference(cell_array[rowInt, colInt]);      //We're telling this cell what it references
@@ -287,26 +303,71 @@ namespace SpreadsheetEngine
 
         public void loadFromXML(FileStream xml)
         {
+            string cname = "";
+            int bgcolor = 0;
+            string text =  "";
+
+
             clearSpreadsheet();
             undoStack.Clear();
             redoStack.Clear();
+
             //var xmlNode = new XmlNode("spreadsheet");
-            
+            XmlReaderSettings settings = new XmlReaderSettings();
+            settings.DtdProcessing = DtdProcessing.Parse;
+            XmlReader reader = XmlReader.Create(xml, settings);
+            while (reader.Read())
+            {
+                switch (reader.NodeType)
+                {
+                    case XmlNodeType.Element:
+                        if (reader.Name == "cell")
+                        {
+                            reader.MoveToNextAttribute();
+                            cname = reader.Value;
+                            break;
+                        }
+                        else if (reader.Name == "bgcolor")
+                        {
+                            reader.MoveToNextAttribute();
+                            bgcolor = ColorTranslator.FromHtml(reader.Value).ToArgb();
+                        }
+                        else if (reader.Name == "Text")
+                        {
+                            reader.MoveToNextAttribute();
+                            text = reader.Value;
 
+                            addCell(cname, text, bgcolor);
+                        }
+                        break;
+                    default:
+                        break;
+                }
+            }
+        }
 
+        /* This function will be called from load cell where it will create and add a cell from the given parameters
+         * */
+        private void addCell(string name, string text, int bgcolor)
+        {
+            string req_col = name.Substring(0, 1);     //to get the required column we need the celltext for the first value "=A6" -> "A"
+            string req_row = name.Substring(1);     //This will take the rest of the information, there's no length so it could read it "=A15" -> "15
+            int colInt = Convert.ToChar(req_col) - 65;                //gets the index based on the character
+            int rowInt = Convert.ToInt32(req_row) - 1;
 
+            cell_array[rowInt, colInt].cText = text;
+            cell_array[rowInt, colInt].BGColor = bgcolor;
         }
 
         private void clearSpreadsheet()
             //This function will be called on a load action and will clear the current spreadsheet out. Should only be called by load
         {
-            undoStack = new Stack<Restore>();
-            redoStack = new Stack<Restore>();
             for(int i = 0; i < RowCount; i++)
             {
                 for(int j = 0; j < ColumnCount; j++)
                 {
-                    cell_array[i,j] = new CellHelper(i, j); //this might not trigger the inotify property to update the datagridview value in the GUI
+                    cell_array[i, j].cText = ""; //this might not trigger the inotify property to update the datagridview value in the GUI
+                    cell_array[i, j].BGColor = 0;
                 }
             }
         }
