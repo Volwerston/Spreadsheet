@@ -329,15 +329,23 @@ namespace SpreadsheetEngine
                         }
                         else if (reader.Name == "bgcolor")
                         {
-                            reader.MoveToNextAttribute();
-                            bgcolor = ColorTranslator.FromHtml(reader.Value).ToArgb();
+                            reader.Read();
+                            if(reader.Value != "#000000")
+                                bgcolor = ColorTranslator.FromHtml(reader.Value).ToArgb();
                         }
-                        else if (reader.Name == "Text")
+                        else if (reader.Name == "text")
                         {
-                            reader.MoveToNextAttribute();
+                            reader.Read();
                             text = reader.Value;
-
+                        }
+                        break;
+                    case XmlNodeType.EndElement:
+                        if (reader.Name == "cell")
+                        {
                             addCell(cname, text, bgcolor);
+                            cname = "";
+                            text = "";
+                            bgcolor = 0;
                         }
                         break;
                     default:
@@ -355,8 +363,10 @@ namespace SpreadsheetEngine
             int colInt = Convert.ToChar(req_col) - 65;                //gets the index based on the character
             int rowInt = Convert.ToInt32(req_row) - 1;
 
-            cell_array[rowInt, colInt].cText = text;
-            cell_array[rowInt, colInt].BGColor = bgcolor;
+            if(text != "")
+                cell_array[rowInt, colInt].cText = text;
+            if(bgcolor != 0)
+                cell_array[rowInt, colInt].BGColor = bgcolor;
         }
 
         private void clearSpreadsheet()

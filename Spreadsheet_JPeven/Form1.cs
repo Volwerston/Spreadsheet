@@ -232,7 +232,7 @@ namespace Spreadsheet_JPeven
             {
                 FileStream myStream = new FileStream(OFD.FileName, FileMode.Open, FileAccess.Read);
                 mySpread.loadFromXML(myStream);
-
+                myStream.Dispose();
                 //xml.Load(OFD.FileName);
                 //mySpread.loadFromXML(xml);
             }
