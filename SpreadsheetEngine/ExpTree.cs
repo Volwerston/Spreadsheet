@@ -134,10 +134,10 @@ namespace SpreadsheetEngine
             //(3+4)*(5+6) ---> 3+4)*(5+6 which is wrong
             //if first char is '(' and last character is matching ')', remove parens
             
-            /*if(exp == "")
+            if(exp == "" || exp == null)
             {
                 return new ConstNode(0);
-            }*/
+            }
 
             if (exp[0] == '(')
             {

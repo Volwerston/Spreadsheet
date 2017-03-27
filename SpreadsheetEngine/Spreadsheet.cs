@@ -51,7 +51,11 @@ namespace SpreadsheetEngine
                 if ((sender as Cell).cText == "" || (sender as Cell).cText == null)
                 {
                     (sender as CellHelper).chValue = "";
-                    (sender as CellHelper).clearReferences();
+                    var previously_references = (sender as CellHelper).clearReferences();
+                    foreach(CellHelper c in previously_references)
+                    {
+                        UpdateCellValue(c);
+                    }
                     if ((sender as CellHelper).referencedBy.Count != 0) //some stuff references this
                     {
                         foreach (CellHelper c in (sender as CellHelper).referencedBy)
@@ -62,15 +66,27 @@ namespace SpreadsheetEngine
                 }
                 else if ((sender as Cell).cText[0] == '=')                                    //Text is an equation
                 {
+                    if (badRef((sender as CellHelper)))
+                    {
+                        (sender as CellHelper).chValue = "!(bad reference)";
+                        return;
+                    }
+                    if (selfRef((sender as CellHelper)))
+                    {
+                        (sender as CellHelper).chValue = "!(self reference)";
+                        return;
+                    }
+                    if (circularRef((sender as CellHelper), new HashSet<CellHelper>()))
+                    {
+                        (sender as CellHelper).chValue = "!(circular reference)";
+                        return;
+                    }
+                    
                     ExpTree tree = new ExpTree((sender as CellHelper).cText.Substring(1));    //create an expression tree
                     List<string> referencedCells = tree.GetVariables();                //This list contains all referenced cells. So "=A1+B2*3" would have ["A1","B2"]
 
-                    /*foreach (Cell c in (sender as CellHelper).references) //I might not reference you anymore
-                    {
-                        c.removeReferenceBy((sender as CellHelper));
-                    }*/
-
-                    (sender as CellHelper).clearReferences(); //clears reference list
+                    var previously_references = (sender as CellHelper).clearReferences();
+                    
 
                     //UpdateCellValue((sender as CellHelper));
 
@@ -104,7 +120,10 @@ namespace SpreadsheetEngine
                     {
                         UpdateCellValue(c);
                     }
-
+                    foreach (CellHelper c in previously_references)
+                    {
+                        UpdateCellValue(c);
+                    }
 
                     //will need to set the value of all referenced values in that equation
                     //String[] vars = tree.Vars() that will return all "B1", "C3", etc that the expression tree needs
@@ -123,7 +142,8 @@ namespace SpreadsheetEngine
                 }
                 else //if ((sender as Cell).cText[0] != '=')        //no need to do equation processing because it doesn't start with '='
                 {
-                    (sender as CellHelper).clearReferences();
+                    var previously_references = (sender as CellHelper).clearReferences();
+                    
                     (sender as CellHelper).chValue = (sender as Cell).cText;
 
                     if ((sender as CellHelper).referencedBy.Count != 0) //some stuff references this
@@ -132,6 +152,10 @@ namespace SpreadsheetEngine
                         {
                             UpdateCellValue(c);
                         }
+                    }
+                    foreach (CellHelper c in previously_references)
+                    {
+                        UpdateCellValue(c);
                     }
                 }
                 /*else                                //I'm not totally sure when this would be triggered, error on input maybe?
@@ -188,6 +212,123 @@ namespace SpreadsheetEngine
                 }
             }
             NotifyPropertyChanged(c, new PropertyChangedEventArgs("CellValue"));
+        }
+
+        private bool selfRef(CellHelper c)
+        {
+            if (c.cText == "" || c.cText == null)
+            {
+                return false;
+            }
+            else if (c.cText[0] != '=')
+            {
+                return false;
+            }
+            ExpTree tree = new ExpTree(c.cText.Substring(1));    //create an expression tree
+            List<string> nameList = tree.GetVariables();
+
+            var cellList = new List<CellHelper>();
+            foreach (string n in nameList)
+            {
+                cellList.Add(stringToCell(n));
+            }
+
+            if(cellList.Contains(c))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool badRef(CellHelper c)
+        {
+            if (c.cText == "" || c.cText == null)
+            {
+                return false;
+            }
+            else if (c.cText[0] != '=')
+            {
+                return false;
+            }
+            ExpTree tree = new ExpTree(c.cText.Substring(1));    //create an expression tree
+            List<string> nameList = tree.GetVariables();
+
+            var cellList = new List<CellHelper>();
+            foreach (string n in nameList)
+            {
+                cellList.Add(stringToCell(n));
+            }
+
+            if (cellList.Contains(null))
+            {
+                return true;
+            }
+
+            return false;
+        
+        }
+
+        private bool circularRef(CellHelper c, HashSet<CellHelper> hs)
+        {
+            if (c.cText == "" || c.cText == null)
+            {
+                return false;
+            }
+            else if(c.cText[0] != '=')
+            {
+                return false;
+            }
+            ExpTree tree = new ExpTree(c.cText.Substring(1));    //create an expression tree
+            List<string> nameList = tree.GetVariables();
+
+            if(hs.Contains(c))
+            {
+                return true;
+            }
+
+            hs.Add(c);
+
+            var cellList = new List<CellHelper>();
+            foreach(string n in nameList)
+            {
+                cellList.Add(stringToCell(n));
+            }
+
+            foreach(CellHelper ce in cellList)
+            {
+                var new_hs = new HashSet<CellHelper>(hs);
+                new_hs.Add(ce);
+                if(circularRef(ce,new_hs))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private CellHelper stringToCell(string name)
+        {
+            string req_col = "";
+            string req_row = "";
+            int colInt = 0;
+            int rowInt = 0;
+            try
+            {
+                req_col = name.Substring(0, 1);     //to get the required column we need the celltext for the first value "=A6" -> "A"
+                req_row = name.Substring(1);     //This will take the rest of the information, there's no length so it could read it "=A15" -> "15
+                colInt = Convert.ToChar(req_col) - 65;                //gets the index based on the character
+                rowInt = Convert.ToInt32(req_row) - 1;                //sets the index (and subtracts on so it's (0,49) instead of (1,50), matching the indexes
+            }
+            catch
+            {
+                return null;
+            }
+
+            if (colInt > 26 || rowInt > 50)
+                return null;
+
+            return cell_array[rowInt, colInt];
         }
 
         public void NotifyPropertyChanged(object sender, PropertyChangedEventArgs e)

@@ -44,7 +44,7 @@ namespace SpreadsheetEngine
             get { return cellText; }
             set
             {                     //I don't totally understand "value yet"...
-                if (value == cellText) { return; } //The value entered is the same as the one currently in it
+                //if (value == cellText) { return; } //The value entered is the same as the one currently in it
 
                 //the value has been changed and the INotifyProperty needs to be activated
                 cellText = value;
@@ -107,13 +107,15 @@ namespace SpreadsheetEngine
                 //cellText = cellValue; //took me about an our of debugging to realize I wasn't connecting the text with the value
             }
         }
-        public void clearReferences()
+        public List<CellHelper> clearReferences()
         {
+            var cellList = references;
             foreach (Cell c in references) //I might not reference you anymore
             {
                 c.removeReferenceBy(this);
             }
             references = new List<CellHelper>();
+            return cellList;
         }
     }
 
