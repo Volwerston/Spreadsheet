@@ -66,7 +66,7 @@ namespace SpreadsheetEngine
                 }
                 else if ((sender as Cell).cText[0] == '=')                                    //Text is an equation
                 {
-                    if (badRef((sender as CellHelper)))
+                    if (badRef((sender as CellHelper)))                                     //This was a pain figuring out which order we should check. Self ref is just a specific circular ref
                     {
                         (sender as CellHelper).chValue = "!(bad reference)";
                         return;
@@ -194,7 +194,9 @@ namespace SpreadsheetEngine
 
 
                     double cellVal;
-                    if (cell_array[rowInt, colInt].chValue == null || cell_array[rowInt, colInt].chValue == "")
+                    if (cell_array[rowInt, colInt].chValue == null || cell_array[rowInt, colInt].chValue == "" || 
+                        cell_array[rowInt, colInt].chValue == "!(bad reference)" || cell_array[rowInt, colInt].chValue == "!(self reference)" ||
+                        cell_array[rowInt, colInt].chValue == "!(circular reference)")
                         cellVal = 0;
                     else
                         cellVal = Convert.ToDouble(cell_array[rowInt, colInt].chValue);
@@ -214,26 +216,26 @@ namespace SpreadsheetEngine
             NotifyPropertyChanged(c, new PropertyChangedEventArgs("CellValue"));
         }
 
-        private bool selfRef(CellHelper c)
-        {
+        private bool selfRef(CellHelper c)                              //These functions are all pretty similar
+        {                                                               //first you make sure that there's anything actually in the cell
             if (c.cText == "" || c.cText == null)
             {
                 return false;
             }
-            else if (c.cText[0] != '=')
+            else if (c.cText[0] != '=')                                 //If there's no "=" then it can't be a circular/bad/self reference
             {
                 return false;
             }
             ExpTree tree = new ExpTree(c.cText.Substring(1));    //create an expression tree
-            List<string> nameList = tree.GetVariables();
+            List<string> nameList = tree.GetVariables();                //All the references in the cell
 
             var cellList = new List<CellHelper>();
-            foreach (string n in nameList)
-            {
-                cellList.Add(stringToCell(n));
+            foreach (string n in nameList)                              //This may seem a little unnecessary, but A4: "=B3 * A1 + A4" would need to look at each 
+            {                                                           //cell referenced, not just the first
+                cellList.Add(stringToCell(n));  
             }
 
-            if(cellList.Contains(c))
+            if(cellList.Contains(c))                                    //Basically, if c references c
             {
                 return true;
             }
@@ -260,8 +262,8 @@ namespace SpreadsheetEngine
                 cellList.Add(stringToCell(n));
             }
 
-            if (cellList.Contains(null))
-            {
+            if (cellList.Contains(null))                        //This is a check that is implemented in stringToCell by using a try/catch, and if that creates something invalid
+            {                                                   //It will add a null references to the cellList, which we now check for.
                 return true;
             }
 
@@ -282,12 +284,12 @@ namespace SpreadsheetEngine
             ExpTree tree = new ExpTree(c.cText.Substring(1));    //create an expression tree
             List<string> nameList = tree.GetVariables();
 
-            if(hs.Contains(c))
+            if(hs.Contains(c))                                  //forgot to do this check for a bit which was dumb
             {
                 return true;
             }
 
-            hs.Add(c);
+            hs.Add(c);                                          //forgot this for a while, infinite loop
 
             var cellList = new List<CellHelper>();
             foreach(string n in nameList)
@@ -295,13 +297,19 @@ namespace SpreadsheetEngine
                 cellList.Add(stringToCell(n));
             }
 
-            foreach(CellHelper ce in cellList)
+            foreach(CellHelper ce in cellList)                  //This is the DFS for checking for circular references
             {
-                var new_hs = new HashSet<CellHelper>(hs);
-                new_hs.Add(ce);
-                if(circularRef(ce,new_hs))
+                if (ce != null)
                 {
-                    return true;
+                    if (ce.cText != "" && ce.cText != null)
+                    {
+                        var new_hs = new HashSet<CellHelper>(hs);
+                        //new_hs.Add(ce);
+                        if (circularRef(ce, new_hs))                      //if any of them return true, return true
+                        {
+                            return true;
+                        }
+                    }
                 }
             }
             return false;
