@@ -1,74 +1,52 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.ComponentModel; //for INotifyProperty
-
-//Jackson Peven, 11382715
+﻿using System.Collections.Generic;
+using System.ComponentModel; 
 
 namespace SpreadsheetEngine
 {
     public abstract class Cell : INotifyPropertyChanged
     {
-        private int m_rowIndex;
-        private int m_columnIndex;
         protected string cellText;
-        protected string cellValue;
         public List<CellHelper> referencedBy = new List<CellHelper>();
         public List<CellHelper> references = new List<CellHelper>();
         private int color;
 
-        public event PropertyChangedEventHandler PropertyChanged; //= delegate { };
+        public event PropertyChangedEventHandler PropertyChanged; 
 
-        protected Cell(int rowIndex, int columnIndex) //protected constructor
+        protected Cell(int rowIndex, int columnIndex)
         {
-            m_rowIndex = rowIndex;
-            m_columnIndex = columnIndex;
+            RowIndex = rowIndex;
+            ColumnIndex = columnIndex;
             cellText = "";
-            cellValue = cellText; //This may need to change
+            cValue = cellText; 
 
         }
 
-        public int RowIndex //only a getter, not a setter
-        {
-            get { return m_rowIndex; }
-        }
+        public int RowIndex { get; }
 
-        public int ColumnIndex //same, only a getter, not a setter
-        {
-            get { return m_columnIndex; }
-        }
+        public int ColumnIndex { get; }
+
         public string cText
         {
-            get { return cellText; }
+            get => cellText;
             set
-            {                     //I don't totally understand "value yet"...
-                //if (value == cellText) { return; } //The value entered is the same as the one currently in it
-
-                //the value has been changed and the INotifyProperty needs to be activated
+            {                     
                 cellText = value;
                 NotifyPropertyChanged("CellText");
             }
         }
 
-        protected string cValue    //now everyone can see/access cellValue, but only those inheriting from Cell can set it
-        {
-            get { return cellValue; }
-            set { cellValue = value; } //this will only be called by a function inside Cell, because when Spreadsheet changes a cell value, it will be routed through CellHelper
-        }
+        protected string cValue { get; set; }
 
         public int BGColor
         {
-            get { return color; }
+            get => color;
             set {
                 color = value;
                 NotifyPropertyChanged("CellColor");
             }
         }
 
-        public void NotifyPropertyChanged(string change) //I wrote this function in case in the future there are more than one kinds of property changes
-                                                          //right now it's just cell text but I'm preparing for future iterations
+        public void NotifyPropertyChanged(string change)                 
         {
             PropertyChanged(this, new PropertyChangedEventArgs(change));
         }
@@ -94,23 +72,20 @@ namespace SpreadsheetEngine
         }
     }
 
-    public class CellHelper : Cell //This class will inherit from class and will allow Spreadsheet to call properties in Cell that it wouldn't be able to otherwise
+    public class CellHelper : Cell 
     {
-        public CellHelper(int row, int col) : base(row, col) { } //C# is weird. Wasn't able to instantiate object of Cell type so I had to create a helper object
+        public CellHelper(int row, int col) : base(row, col) { }
+
         public string chValue
         {
-            get { return cellValue; }
-            set
-            {
-                cellValue = value;
-                //NotifyPropertyChanged("Value updated");
-                //cellText = cellValue; //took me about an our of debugging to realize I wasn't connecting the text with the value
-            }
+            get => cValue;
+            set => cValue = value;
         }
+
         public List<CellHelper> clearReferences()
         {
             var cellList = references;
-            foreach (Cell c in references) //I might not reference you anymore
+            foreach (var c in references)
             {
                 c.removeReferenceBy(this);
             }

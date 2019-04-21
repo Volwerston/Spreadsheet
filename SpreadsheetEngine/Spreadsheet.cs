@@ -15,8 +15,6 @@ namespace SpreadsheetEngine
     public class Spreadsheet : INotifyPropertyChanged
     {
         public CellHelper[,] cell_array;
-        private int m_rows;
-        private int m_col;
         private Stack<Restore> undoStack = new Stack<Restore>();
         private Stack<Restore> redoStack = new Stack<Restore>();
 
@@ -25,8 +23,8 @@ namespace SpreadsheetEngine
         public Spreadsheet(int rows, int col)
         {
             cell_array = new CellHelper[rows, col];
-            m_rows = rows;
-            m_col = col;
+            RowCount = rows;
+            ColumnCount = col;
             for (int i = 0; i < rows; i++)
             {
                 for (int j = 0; j < col; j++)
@@ -46,8 +44,7 @@ namespace SpreadsheetEngine
             }
             if (e.PropertyName == "CellText")
             {
-                //if ((sender as Cell).cText != null && (sender as Cell).cText != "")
-                //if ((sender as Cell).cText.ToString().Length > 0)     //This means that there is something in the cell
+                
                 if ((sender as Cell).cText == "" || (sender as Cell).cText == null)
                 {
                     (sender as CellHelper).chValue = "";
@@ -56,7 +53,7 @@ namespace SpreadsheetEngine
                     {
                         UpdateCellValue(c);
                     }
-                    if ((sender as CellHelper).referencedBy.Count != 0) //some stuff references this
+                    if ((sender as CellHelper).referencedBy.Count != 0) 
                     {
                         foreach (CellHelper c in (sender as CellHelper).referencedBy)
                         {
@@ -64,9 +61,9 @@ namespace SpreadsheetEngine
                         }
                     }
                 }
-                else if ((sender as Cell).cText[0] == '=')                                    //Text is an equation
+                else if ((sender as Cell).cText[0] == '=')                                    
                 {
-                    if (badRef((sender as CellHelper)))                                     //This was a pain figuring out which order we should check. Self ref is just a specific circular ref
+                    if (badRef((sender as CellHelper)))                                     
                     {
                         (sender as CellHelper).chValue = "!(bad reference)";
                         return;
@@ -82,71 +79,53 @@ namespace SpreadsheetEngine
                         return;
                     }
                     
-                    ExpTree tree = new ExpTree((sender as CellHelper).cText.Substring(1));    //create an expression tree
-                    List<string> referencedCells = tree.GetVariables();                //This list contains all referenced cells. So "=A1+B2*3" would have ["A1","B2"]
+                    var tree = new ExpTree((sender as CellHelper).cText.Substring(1));   
+                    var referencedCells = tree.GetVariables();               
 
                     var previously_references = (sender as CellHelper).clearReferences();
                     
-
-                    //UpdateCellValue((sender as CellHelper));
-
-                    foreach (string c_name in referencedCells)
+                    foreach (var c_name in referencedCells)
                     {
-                        string req_col = c_name.Substring(0, 1);     //to get the required column we need the celltext for the first value "=A6" -> "A"
-                        string req_row = c_name.Substring(1);     //This will take the rest of the information, there's no length so it could read it "=A15" -> "15
-                        int colInt = Convert.ToChar(req_col) - 65;                //gets the index based on the character
-                        int rowInt = Convert.ToInt32(req_row) - 1;                //sets the index (and subtracts on so it's (0,49) instead of (1,50), matching the indexes
+                        var req_col = c_name.Substring(0, 1);    
+                        var req_row = c_name.Substring(1);     
+                        var colInt = Convert.ToChar(req_col) - 65;                
+                        var rowInt = Convert.ToInt32(req_row) - 1;              
 
                         double cellVal = 0;
                         try
                         {
                             cellVal = Convert.ToDouble(cell_array[rowInt, colInt].chValue);
                         }
-                        catch (FormatException err)
+                        catch (FormatException)
                         {
                             cellVal = 0;
                         }
 
+                        tree.SetVar(c_name, cellVal);                          
 
-                        tree.SetVar(c_name, cellVal);                           //now the tree knows what A2 is
-
-                        (sender as CellHelper).addReference(cell_array[rowInt, colInt]);      //We're telling this cell what it references
-                        cell_array[rowInt, colInt].addReferenceBy((sender as CellHelper));    //The cell we're referencing now knows we're referencing them
+                        (sender as CellHelper).addReference(cell_array[rowInt, colInt]);   
+                        cell_array[rowInt, colInt].addReferenceBy((sender as CellHelper));    
                     }
 
                     (sender as CellHelper).chValue = Convert.ToString(tree.Eval());
 
-                    foreach (CellHelper c in (sender as CellHelper).referencedBy)
-                    {
-                        UpdateCellValue(c);
-                    }
-                    foreach (CellHelper c in previously_references)
+                    foreach (var c in (sender as CellHelper).referencedBy)
                     {
                         UpdateCellValue(c);
                     }
 
-                    //will need to set the value of all referenced values in that equation
-                    //String[] vars = tree.Vars() that will return all "B1", "C3", etc that the expression tree needs
-                    //for each of those strings, tree.setvar(...);
-
-
-
-
-                    /*string req_col = (sender as Cell).cText.Substring(1, 1);     //to get the required column we need the celltext for the first value "=A6" -> "A"
-                    string req_row = (sender as Cell).cText.Substring(2);     //This will take the rest of the information, there's no length so it could read it "=A15" -> "15
-                    int colInt = Convert.ToChar(req_col) - 65;                //gets the index based on the character
-                    int rowInt = Convert.ToInt32(req_row) - 1;                //sets the index (and subtracts on so it's (0,49) instead of (1,50), matching the indexes
-                    //(sender as CellHelper).chValue = tree.Eval();
-                    (sender as CellHelper).chValue = cell_array[rowInt, colInt].chValue;
-                    //updated Dependencies*/
+                    foreach (var c in previously_references)
+                    {
+                        UpdateCellValue(c);
+                    }
                 }
-                else //if ((sender as Cell).cText[0] != '=')        //no need to do equation processing because it doesn't start with '='
+                else
                 {
                     var previously_references = (sender as CellHelper).clearReferences();
                     
                     (sender as CellHelper).chValue = (sender as Cell).cText;
 
-                    if ((sender as CellHelper).referencedBy.Count != 0) //some stuff references this
+                    if ((sender as CellHelper).referencedBy.Count != 0) 
                     {
                         foreach (CellHelper c in (sender as CellHelper).referencedBy)
                         {
@@ -158,57 +137,47 @@ namespace SpreadsheetEngine
                         UpdateCellValue(c);
                     }
                 }
-                /*else                                //I'm not totally sure when this would be triggered, error on input maybe?
-                {
-                    (sender as CellHelper).chValue = (sender as Cell).cText;
-                    //(sender as Cell).cText = "ERROR";
-                }*/
-
+                
                 NotifyPropertyChanged((sender as CellHelper), new PropertyChangedEventArgs("CellValue"));
             }
         }
 
-        //INotifyPropertyChanged
-
         private void UpdateCellValue(CellHelper c)
-            //Will be called when a cell that cell c references is updated, or when a cell itself is updated.
-            //Will create a new expression tree based on the text, and get the cell values from the spreadsheet.
-            //This is very similar to what happens when a new expression is added to a cell EXCEPT it doesn't update
-            //the reference lists because the cell text itself isn't changing, just its value
-        {
-            if (c.cText == null || c.cText == "")
+         {
+            if (string.IsNullOrEmpty(c.cText))
             {
                 c.chValue = c.cText;
             }
             else
             {
-                ExpTree tree = new ExpTree(c.cText.Substring(1));    //create an expression tree
-                List<string> referencedCells = tree.GetVariables();                //This list contains all referenced cells. So "=A1+B2*3" would have ["A1","B2"]
+                var tree = new ExpTree(c.cText.Substring(1));   
+                var referencedCells = tree.GetVariables();   
 
-                foreach (string c_name in referencedCells)
+                foreach (var c_name in referencedCells)
                 {
-                    string req_col = c_name.Substring(0, 1);     //to get the required column we need the celltext for the first value "=A6" -> "A"
-                    string req_row = c_name.Substring(1);     //This will take the rest of the information, there's no length so it could read it "=A15" -> "15
-                    int colInt = Convert.ToChar(req_col) - 65;                //gets the index based on the character
-                    int rowInt = Convert.ToInt32(req_row) - 1;                //sets the index (and subtracts on so it's (0,49) instead of (1,50), matching the indexes
-
+                    var req_col = c_name.Substring(0, 1);    
+                    var req_row = c_name.Substring(1);     
+                    var colInt = Convert.ToChar(req_col) - 65;              
+                    var rowInt = Convert.ToInt32(req_row) - 1;               
 
                     double cellVal;
-                    if (cell_array[rowInt, colInt].chValue == null || cell_array[rowInt, colInt].chValue == "" || 
-                        cell_array[rowInt, colInt].chValue == "!(bad reference)" || cell_array[rowInt, colInt].chValue == "!(self reference)" ||
+                    if (string.IsNullOrEmpty(cell_array[rowInt, colInt].chValue) ||
+                        cell_array[rowInt, colInt].chValue == "!(bad reference)" ||
+                        cell_array[rowInt, colInt].chValue == "!(self reference)" ||
                         cell_array[rowInt, colInt].chValue == "!(circular reference)")
+                    {
                         cellVal = 0;
+                    }
                     else
+                    {
                         cellVal = Convert.ToDouble(cell_array[rowInt, colInt].chValue);
-
-                    tree.SetVar(c_name, cellVal);                           //now the tree knows what A2 is
-
-                    /*(sender as CellHelper).addReference(cell_array[rowInt, colInt]);      //We're telling this cell what it references
-                    cell_array[rowInt, colInt].addReferenceBy((sender as CellHelper));    //The cell we're referencing now knows we're referencing them*/
+                    }
+                        
+                    tree.SetVar(c_name, cellVal);         
                 }
 
                 c.chValue = Convert.ToString(tree.Eval());
-                foreach (CellHelper c2 in c.referencedBy)
+                foreach (var c2 in c.referencedBy)
                 {
                     UpdateCellValue(c2);
                 }
@@ -216,117 +185,106 @@ namespace SpreadsheetEngine
             NotifyPropertyChanged(c, new PropertyChangedEventArgs("CellValue"));
         }
 
-        private bool selfRef(CellHelper c)                              //These functions are all pretty similar
-        {                                                               //first you make sure that there's anything actually in the cell
-            if (c.cText == "" || c.cText == null)
+        private bool selfRef(CellHelper c)                              
+        {                                                               
+            if (string.IsNullOrEmpty(c.cText))
             {
                 return false;
             }
-            else if (c.cText[0] != '=')                                 //If there's no "=" then it can't be a circular/bad/self reference
+
+            if (c.cText[0] != '=')                                 
             {
                 return false;
             }
-            ExpTree tree = new ExpTree(c.cText.Substring(1));    //create an expression tree
-            List<string> nameList = tree.GetVariables();                //All the references in the cell
+
+            var tree = new ExpTree(c.cText.Substring(1));    
+            var nameList = tree.GetVariables();                
 
             var cellList = new List<CellHelper>();
-            foreach (string n in nameList)                              //This may seem a little unnecessary, but A4: "=B3 * A1 + A4" would need to look at each 
-            {                                                           //cell referenced, not just the first
+            foreach (var n in nameList)                             
+            {                                                           
                 cellList.Add(stringToCell(n));  
             }
 
-            if(cellList.Contains(c))                                    //Basically, if c references c
-            {
-                return true;
-            }
-
-            return false;
+            return cellList.Contains(c);
         }
 
         private bool badRef(CellHelper c)
         {
-            if (c.cText == "" || c.cText == null)
+            if (string.IsNullOrEmpty(c.cText))
             {
                 return false;
             }
-            else if (c.cText[0] != '=')
+
+            if (c.cText[0] != '=')
             {
                 return false;
             }
-            ExpTree tree = new ExpTree(c.cText.Substring(1));    //create an expression tree
-            List<string> nameList = tree.GetVariables();
+
+            var tree = new ExpTree(c.cText.Substring(1));    
+            var nameList = tree.GetVariables();
 
             var cellList = new List<CellHelper>();
-            foreach (string n in nameList)
+            foreach (var n in nameList)
             {
                 cellList.Add(stringToCell(n));
             }
 
-            if (cellList.Contains(null))                        //This is a check that is implemented in stringToCell by using a try/catch, and if that creates something invalid
-            {                                                   //It will add a null references to the cellList, which we now check for.
-                return true;
-            }
-
-            return false;
-        
+            return cellList.Contains(null);
         }
 
-        private bool circularRef(CellHelper c, HashSet<CellHelper> hs)
+        private bool circularRef(CellHelper c, ISet<CellHelper> hs)
         {
-            if (c.cText == "" || c.cText == null)
+            if (string.IsNullOrEmpty(c.cText))
             {
                 return false;
             }
-            else if(c.cText[0] != '=')
-            {
-                return false;
-            }
-            ExpTree tree = new ExpTree(c.cText.Substring(1));    //create an expression tree
-            List<string> nameList = tree.GetVariables();
 
-            if(hs.Contains(c))                                  //forgot to do this check for a bit which was dumb
+            if(c.cText[0] != '=')
+            {
+                return false;
+            }
+
+            var tree = new ExpTree(c.cText.Substring(1));    
+            var nameList = tree.GetVariables();
+
+            if(hs.Contains(c))                                 
             {
                 return true;
             }
 
-            hs.Add(c);                                          //forgot this for a while, infinite loop
+            hs.Add(c);                                          
 
             var cellList = new List<CellHelper>();
-            foreach(string n in nameList)
+            foreach(var n in nameList)
             {
                 cellList.Add(stringToCell(n));
             }
 
-            foreach(CellHelper ce in cellList)                  //This is the DFS for checking for circular references
+            foreach(var ce in cellList)
             {
-                if (ce != null)
+                if (string.IsNullOrEmpty(ce?.cText)) continue;
+
+                var new_hs = new HashSet<CellHelper>(hs);
+ 
+                if (circularRef(ce, new_hs))                      
                 {
-                    if (ce.cText != "" && ce.cText != null)
-                    {
-                        var new_hs = new HashSet<CellHelper>(hs);
-                        //new_hs.Add(ce);
-                        if (circularRef(ce, new_hs))                      //if any of them return true, return true
-                        {
-                            return true;
-                        }
-                    }
+                    return true;
                 }
             }
+
             return false;
         }
 
         private CellHelper stringToCell(string name)
         {
-            string req_col = "";
-            string req_row = "";
-            int colInt = 0;
-            int rowInt = 0;
+            int colInt, rowInt;
             try
             {
-                req_col = name.Substring(0, 1);     //to get the required column we need the celltext for the first value "=A6" -> "A"
-                req_row = name.Substring(1);     //This will take the rest of the information, there's no length so it could read it "=A15" -> "15
-                colInt = Convert.ToChar(req_col) - 65;                //gets the index based on the character
-                rowInt = Convert.ToInt32(req_row) - 1;                //sets the index (and subtracts on so it's (0,49) instead of (1,50), matching the indexes
+                var reqCol = name.Substring(0, 1); 
+                var reqRow = name.Substring(1);   
+                colInt = Convert.ToChar(reqCol) - 65;  
+                rowInt = Convert.ToInt32(reqRow) - 1;   
             }
             catch
             {
@@ -341,18 +299,12 @@ namespace SpreadsheetEngine
 
         public void NotifyPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            PropertyChanged(sender, e);
+            PropertyChanged?.Invoke(sender, e);
         }
 
-        public int ColumnCount
-        {
-            get { return m_col; }
-        }
+        public int ColumnCount { get; }
 
-        public int RowCount
-        {
-            get { return m_rows; }
-        }
+        public int RowCount { get; }
 
         public Cell GetCell(int R, int C)
         {
