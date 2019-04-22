@@ -78,8 +78,6 @@ namespace SpreadsheetEngine
                     var tree = new ExpTree((sender as CellHelper).cText.Substring(1));   
                     var referencedCells = tree.GetVariables();               
 
-                    var previously_references = (sender as CellHelper).clearReferences();
-                    
                     foreach (var c_name in referencedCells)
                     {
                         var req_col = c_name.Substring(0, 1);    
@@ -112,8 +110,6 @@ namespace SpreadsheetEngine
                 }
                 else
                 {
-                    var previously_references = (sender as CellHelper).clearReferences();
-                    
                     (sender as CellHelper).chValue = (sender as Cell).cText;
 
                     if ((sender as CellHelper).referencedBy.Count != 0) 
