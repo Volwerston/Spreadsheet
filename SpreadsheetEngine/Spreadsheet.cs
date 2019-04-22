@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.ComponentModel; //for INotifyProperty
-using System.Xml;           //maybe?
+using System.ComponentModel; 
+using System.Xml;           
 using System.IO;
 using System.Drawing;
 
-//Jackson Peven, 11382715
 
 namespace SpreadsheetEngine
 {
@@ -126,10 +122,6 @@ namespace SpreadsheetEngine
                         {
                             UpdateCellValue(c);
                         }
-                    }
-                    foreach (CellHelper c in previously_references)
-                    {
-                        UpdateCellValue(c);
                     }
                 }
                 
@@ -304,7 +296,7 @@ namespace SpreadsheetEngine
         public Cell GetCell(int R, int C)
         {
             if (R < RowCount && C < ColumnCount)
-                return cell_array[R, C]; //if this is out of range, it will just return null so it should be okay
+                return cell_array[R, C];
             else
                 return null;
         }
