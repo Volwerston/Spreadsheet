@@ -113,11 +113,6 @@ namespace SpreadsheetEngine
                     {
                         UpdateCellValue(c);
                     }
-
-                    foreach (var c in previously_references)
-                    {
-                        UpdateCellValue(c);
-                    }
                 }
                 else
                 {
